@@ -50,6 +50,36 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.roundToInt
 
+// ---- Real scanner & live map support (CameraX + ML Kit, osmdroid + FusedLocation) ----
+import android.Manifest
+import android.annotation.SuppressLint
+import androidx.camera.core.Camera
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.DialogProperties
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
+import com.google.android.gms.location.LocationServices
+import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.common.InputImage
+import org.osmdroid.config.Configuration as OsmConfiguration
+import org.osmdroid.events.MapEventsReceiver
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
+import org.osmdroid.views.overlay.MapEventsOverlay
+import java.util.concurrent.Executors
+
 // Theme Toggle State
 var isDarkModeGlobal by mutableStateOf(true)
 
@@ -63,6 +93,59 @@ val DarkAccentGold: Color @Composable get() = if (isDarkModeGlobal) Color(0xFF42
 val DarkTextPrimary: Color @Composable get() = if (isDarkModeGlobal) Color(0xFFE5F5F7) else Color(0xFF061E22)
 val DarkTextSecondary: Color @Composable get() = if (isDarkModeGlobal) Color(0xFF8BB1B8) else Color(0xFF4B6E75)
 val SleekBorderColor: Color @Composable get() = if (isDarkModeGlobal) Color(0xFF18454D).copy(alpha = 0.4f) else Color(0xFFD0E5E8)
+
+// ---- Glass UI tokens (glassmorphism overlay system, premium minimal look) ----
+val GlassFill: Color @Composable get() = if (isDarkModeGlobal) Color.White.copy(alpha = 0.055f) else Color.White.copy(alpha = 0.62f)
+val GlassFillStrong: Color @Composable get() = if (isDarkModeGlobal) Color.White.copy(alpha = 0.09f) else Color.White.copy(alpha = 0.78f)
+val GlassBorder: Color @Composable get() = if (isDarkModeGlobal) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.9f)
+val GlassBackgroundGradient: Brush @Composable get() = if (isDarkModeGlobal)
+    Brush.linearGradient(listOf(Color(0xFF040F12), Color(0xFF0A2228), Color(0xFF0F2E33)))
+else
+    Brush.linearGradient(listOf(Color(0xFFF2F8F9), Color(0xFFE9F3F4), Color(0xFFDDEEF0)))
+val GlassAccentGradient: Brush @Composable get() = Brush.linearGradient(listOf(DarkAccentRed, DarkAccentGold))
+
+/**
+ * A frosted translucent panel: the standard building block for the glass UI.
+ * Lets whatever gradient/background sits behind it show through softly.
+ */
+@Composable
+fun GlassPanel(
+    modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(20.dp),
+    strong: Boolean = false,
+    content: @Composable BoxScope.() -> Unit
+) {
+    val fill = if (strong) GlassFillStrong else GlassFill
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(fill, shape)
+            .border(1.dp, GlassBorder, shape),
+        content = content
+    )
+}
+
+/** A small circular frosted-glass icon button, used in glass top bars / floating controls. */
+@Composable
+fun GlassIconButton(
+    onClick: () -> Unit,
+    icon: ImageVector,
+    contentDescription: String?,
+    tint: Color = Color.White,
+    size: Dp = 40.dp
+) {
+    Box(
+        modifier = Modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(Color.White.copy(alpha = 0.12f), CircleShape)
+            .border(1.dp, Color.White.copy(alpha = 0.22f), CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(icon, contentDescription = contentDescription, tint = tint, modifier = Modifier.size(size * 0.5f))
+    }
+}
 
 val LocalUploadedLogo = staticCompositionLocalOf<String?> { null }
 
@@ -441,7 +524,7 @@ fun PharmacyApp(viewModel: PharmacyViewModel) {
                 modifier = Modifier
                     .widthIn(max = 420.dp)
                     .fillMaxHeight()
-                    .background(DarkBg)
+                    .background(GlassBackgroundGradient)
             ) {
                 if (showSplash) {
                     SplashScreen(isBengali = isBengali, onTimeout = { showSplash = false })
@@ -499,8 +582,8 @@ fun LoginScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
             // Language selector button
             Card(
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                border = BorderStroke(1.dp, SleekBorderColor),
+                colors = CardDefaults.cardColors(containerColor = GlassFillStrong),
+                border = BorderStroke(1.dp, GlassBorder),
                 modifier = Modifier.clickable { viewModel.toggleLanguage() }
             ) {
                 Row(
@@ -526,8 +609,8 @@ fun LoginScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
             // Theme switch button
             Card(
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                border = BorderStroke(1.dp, SleekBorderColor),
+                colors = CardDefaults.cardColors(containerColor = GlassFillStrong),
+                border = BorderStroke(1.dp, GlassBorder),
                 modifier = Modifier.clickable { viewModel.toggleDarkMode() }
             ) {
                 Row(
@@ -846,10 +929,16 @@ fun LoggedInNavigator(viewModel: PharmacyViewModel, isBengali: Boolean) {
     var showStaffAddPharmacyDialog by remember { mutableStateOf(false) }
 
     Scaffold(
+        containerColor = Color.Transparent,
         bottomBar = {
             NavigationBar(
-                containerColor = DarkSurface,
-                modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
+                containerColor = Color.Transparent,
+                modifier = Modifier
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
+                    .clip(RoundedCornerShape(26.dp))
+                    .background(GlassFillStrong, RoundedCornerShape(26.dp))
+                    .border(1.dp, GlassBorder, RoundedCornerShape(26.dp))
             ) {
                 val tabs = listOf(
                     Triple(if (isBengali) "ড্যাশবোর্ড" else "Dashboard", Icons.Filled.Dashboard, Icons.Outlined.Dashboard),
@@ -877,7 +966,7 @@ fun LoggedInNavigator(viewModel: PharmacyViewModel, isBengali: Boolean) {
                             unselectedIconColor = DarkTextSecondary.copy(alpha = 0.6f),
                             selectedTextColor = DarkTextPrimary,
                             unselectedTextColor = DarkTextSecondary.copy(alpha = 0.5f),
-                            indicatorColor = if (isDarkModeGlobal) Color.White else Color.Black
+                            indicatorColor = DarkAccentRed
                         )
                     )
                 }
@@ -888,7 +977,7 @@ fun LoggedInNavigator(viewModel: PharmacyViewModel, isBengali: Boolean) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(DarkBg)
+                .background(GlassBackgroundGradient)
         ) {
             if (currentUser.role == "staff" && currentUser.linkedAdminUsername.isBlank() && currentTab != 4) {
                 StaffUnlinkedPharmacyScreen(
@@ -4783,9 +4872,9 @@ fun SalesScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
         }
     }
 
-    // Interactive Camera simulator dialog
+    // Real camera barcode scanner (CameraX + ML Kit)
     if (showCameraSimulation) {
-        CameraScannerSimulationDialog(medicines, isBengali, onSelectBarcode = { code ->
+        BarcodeScannerDialog(medicines, isBengali, onSelectBarcode = { code ->
             searchQuery = code
             showCameraSimulation = false
         }, onDismiss = { showCameraSimulation = false })
@@ -4839,71 +4928,255 @@ fun SalesScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
     }
 }
 
+/**
+ * Real barcode/QR scanner: CameraX preview + an ML Kit on-device analyzer, with a
+ * glass-styled viewfinder overlay. Falls back to a manual-entry glass sheet when the
+ * camera permission isn't granted. Replaces the old canvas-tap simulation.
+ */
+@OptIn(ExperimentalPermissionsApi::class)
+@SuppressLint("MissingPermission")
 @Composable
-fun CameraScannerSimulationDialog(
+fun BarcodeScannerDialog(
     allMedicines: List<Medicine>,
     isBengali: Boolean,
     onSelectBarcode: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            colors = CardDefaults.cardColors(containerColor = DarkSurface),
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = if (isBengali) "📷 বারকোড স্ক্যানার সিমুলেটর" else "📷 Barcode Scanner Simulator",
-                    color = DarkTextPrimary,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
+    var torchOn by remember { mutableStateOf(false) }
+    var showManualEntry by remember { mutableStateOf(false) }
+    var manualCode by remember { mutableStateOf("") }
+    var hasScanned by remember { mutableStateOf(false) }
+    var cameraRef by remember { mutableStateOf<Camera?>(null) }
+
+    LaunchedEffect(Unit) {
+        if (!cameraPermissionState.status.isGranted) {
+            cameraPermissionState.launchPermissionRequest()
+        }
+    }
+
+    LaunchedEffect(torchOn) {
+        try {
+            cameraRef?.cameraControl?.enableTorch(torchOn)
+        } catch (e: Exception) { /* torch not supported on this device */ }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            try {
+                ProcessCameraProvider.getInstance(context).get().unbindAll()
+            } catch (e: Exception) { /* camera already released */ }
+        }
+    }
+
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+
+            if (cameraPermissionState.status.isGranted && !showManualEntry) {
+                AndroidView(
+                    modifier = Modifier.fillMaxSize(),
+                    factory = { ctx ->
+                        val previewView = PreviewView(ctx).apply {
+                            scaleType = PreviewView.ScaleType.FILL_CENTER
+                        }
+                        val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
+                        cameraProviderFuture.addListener({
+                            val cameraProvider = cameraProviderFuture.get()
+                            val preview = Preview.Builder().build().also {
+                                it.setSurfaceProvider(previewView.surfaceProvider)
+                            }
+                            val scanner = BarcodeScanning.getClient()
+                            val imageAnalysis = ImageAnalysis.Builder()
+                                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                                .build()
+                            imageAnalysis.setAnalyzer(Executors.newSingleThreadExecutor()) { imageProxy ->
+                                val mediaImage = imageProxy.image
+                                if (mediaImage != null) {
+                                    val inputImage = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+                                    scanner.process(inputImage)
+                                        .addOnSuccessListener { barcodes ->
+                                            val value = barcodes.firstOrNull { !it.rawValue.isNullOrBlank() }?.rawValue
+                                            if (!value.isNullOrBlank() && !hasScanned) {
+                                                hasScanned = true
+                                                onSelectBarcode(value)
+                                            }
+                                        }
+                                        .addOnCompleteListener { imageProxy.close() }
+                                } else {
+                                    imageProxy.close()
+                                }
+                            }
+                            try {
+                                cameraProvider.unbindAll()
+                                cameraRef = cameraProvider.bindToLifecycle(
+                                    lifecycleOwner,
+                                    CameraSelector.DEFAULT_BACK_CAMERA,
+                                    preview,
+                                    imageAnalysis
+                                )
+                            } catch (e: Exception) { /* no camera available on this device */ }
+                        }, ContextCompat.getMainExecutor(ctx))
+                        previewView
+                    }
                 )
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Interactive green scan-line area simulation
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp)
-                        .background(Color.Black, RoundedCornerShape(8.dp))
-                        .border(1.dp, Color.Green.copy(alpha = 0.5f), RoundedCornerShape(8.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Box(
+
+                Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.12f)))
+
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(2.dp)
-                            .background(Color.Green)
-                    )
-                    Text(
-                        if (isBengali) "খুঁজছে... ক্যামেরার সামনে বারকোড রাখুন" else "Scanning... Place barcode inside view-box",
-                        color = Color.Green,
-                        fontSize = 11.sp,
-                        modifier = Modifier.padding(bottom = 60.dp)
-                    )
+                            .windowInsetsPadding(WindowInsets.statusBars)
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        GlassIconButton(onClick = onDismiss, icon = Icons.Filled.ArrowBack, contentDescription = "Back")
+                        Text(
+                            if (isBengali) "বারকোড স্ক্যান করুন" else "Scan Barcode",
+                            color = Color.White,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        GlassIconButton(
+                            onClick = { torchOn = !torchOn },
+                            icon = Icons.Filled.FlashOn,
+                            contentDescription = "Flash",
+                            tint = if (torchOn) DarkAccentGold else Color.White
+                        )
+                    }
+
+                    Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        ScannerViewfinderFrame(accent = DarkAccentGold)
+                        Text(
+                            if (isBengali) "বারকোডটি ফ্রেমের মধ্যে রাখুন" else "Align the barcode within the frame",
+                            color = Color.White.copy(alpha = 0.85f),
+                            fontSize = 12.sp,
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 90.dp)
+                        )
+                    }
+
+                    GlassPanel(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp),
+                        strong = true
+                    ) {
+                        Column(modifier = Modifier.padding(18.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    if (isBengali) "সাম্প্রতিক বারকোড" else "Recent barcodes",
+                                    color = DarkTextPrimary,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                TextButton(onClick = { showManualEntry = true }) {
+                                    Text(
+                                        if (isBengali) "ম্যানুয়াল এন্ট্রি" else "Enter manually",
+                                        color = DarkAccentGold,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            val recent = allMedicines.filter { it.barcode.isNotBlank() }.take(3)
+                            if (recent.isEmpty()) {
+                                Text(
+                                    if (isBengali) "কোনো বারকোডযুক্ত ওষুধ নেই" else "No barcoded items yet",
+                                    color = DarkTextSecondary,
+                                    fontSize = 11.sp
+                                )
+                            } else {
+                                recent.forEach { med ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(med.name, color = DarkTextPrimary, fontSize = 12.5.sp)
+                                        Text(med.barcode, color = DarkAccentGold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    if (isBengali) "দ্রুত টেস্ট করার জন্য যেকোনো টেস্ট বারকোড সিলেক্ট করুন:" else "Select one of registered items to mock scanner read:",
-                    color = DarkTextSecondary,
-                    fontSize = 12.sp,
-                    textAlign = TextAlign.Start,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                if (allMedicines.isEmpty()) {
-                    Text(
-                        if (isBengali) "ইনভেন্টরিতে কোনো ওষুধ নেই! আগে ওষুধ যোগ করুন।" else "No medicines available in inventory!",
-                        color = DarkAccentRed,
-                        fontSize = 12.sp
+            } else {
+                // Permission not granted yet, or the user chose manual entry.
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(GlassBackgroundGradient)
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.CameraAlt,
+                        contentDescription = null,
+                        tint = DarkAccentGold,
+                        modifier = Modifier.size(48.dp)
                     )
-                } else {
-                    LazyColumn(modifier = Modifier.height(140.dp)) {
-                        items(allMedicines) { med ->
-                            if (med.barcode.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = if (!cameraPermissionState.status.isGranted)
+                            (if (isBengali) "বারকোড স্ক্যান করতে ক্যামেরার অনুমতি দিন" else "Camera permission is needed to scan barcodes")
+                        else
+                            (if (isBengali) "বারকোড নম্বর লিখুন" else "Enter the barcode number"),
+                        color = DarkTextPrimary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    if (!cameraPermissionState.status.isGranted) {
+                        Button(
+                            onClick = { cameraPermissionState.launchPermissionRequest() },
+                            colors = ButtonDefaults.buttonColors(containerColor = DarkAccentRed, contentColor = DarkAccentText)
+                        ) {
+                            Text(if (isBengali) "অনুমতি দিন" else "Grant permission", fontWeight = FontWeight.Bold)
+                        }
+                        Spacer(modifier = Modifier.height(14.dp))
+                    }
+                    OutlinedTextField(
+                        value = manualCode,
+                        onValueChange = { manualCode = it },
+                        label = { Text(if (isBengali) "বারকোড" else "Barcode") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+                            Text(if (isBengali) "বাতিল" else "Cancel")
+                        }
+                        Button(
+                            onClick = { if (manualCode.isNotBlank()) onSelectBarcode(manualCode.trim()) },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = DarkAccentRed, contentColor = DarkAccentText)
+                        ) {
+                            Text(if (isBengali) "নিশ্চিত করুন" else "Confirm", fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    if (allMedicines.any { it.barcode.isNotBlank() }) {
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Text(
+                            if (isBengali) "অথবা তালিকা থেকে বেছে নিন:" else "Or pick from inventory:",
+                            color = DarkTextSecondary,
+                            fontSize = 11.sp,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        LazyColumn(modifier = Modifier.height(130.dp)) {
+                            items(allMedicines.filter { it.barcode.isNotBlank() }) { med ->
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -4919,17 +5192,47 @@ fun CameraScannerSimulationDialog(
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                OutlinedButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(if (isBengali) "বাতিল" else "Cancel")
-                }
             }
         }
+    }
+}
+
+/** Animated glass viewfinder frame: four corner brackets + a sweeping scan line. */
+@Composable
+private fun ScannerViewfinderFrame(accent: Color) {
+    val infiniteTransition = rememberInfiniteTransition(label = "scanline")
+    val lineProgress by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1600, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scanlineProgress"
+    )
+    Box(modifier = Modifier.size(250.dp)) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val corner = 28.dp.toPx()
+            val strokeW = 4.dp.toPx()
+            val w = size.width
+            val h = size.height
+            drawLine(accent, androidx.compose.ui.geometry.Offset(0f, corner), androidx.compose.ui.geometry.Offset(0f, 0f), strokeW, StrokeCap.Round)
+            drawLine(accent, androidx.compose.ui.geometry.Offset(0f, 0f), androidx.compose.ui.geometry.Offset(corner, 0f), strokeW, StrokeCap.Round)
+            drawLine(accent, androidx.compose.ui.geometry.Offset(w - corner, 0f), androidx.compose.ui.geometry.Offset(w, 0f), strokeW, StrokeCap.Round)
+            drawLine(accent, androidx.compose.ui.geometry.Offset(w, 0f), androidx.compose.ui.geometry.Offset(w, corner), strokeW, StrokeCap.Round)
+            drawLine(accent, androidx.compose.ui.geometry.Offset(0f, h - corner), androidx.compose.ui.geometry.Offset(0f, h), strokeW, StrokeCap.Round)
+            drawLine(accent, androidx.compose.ui.geometry.Offset(0f, h), androidx.compose.ui.geometry.Offset(corner, h), strokeW, StrokeCap.Round)
+            drawLine(accent, androidx.compose.ui.geometry.Offset(w - corner, h), androidx.compose.ui.geometry.Offset(w, h), strokeW, StrokeCap.Round)
+            drawLine(accent, androidx.compose.ui.geometry.Offset(w, h), androidx.compose.ui.geometry.Offset(w, h - corner), strokeW, StrokeCap.Round)
+        }
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .offset(y = (lineProgress * 220).dp)
+                .fillMaxWidth()
+                .height(2.dp)
+                .background(accent.copy(alpha = 0.85f))
+        )
     }
 }
 
@@ -5716,7 +6019,7 @@ fun InventoryScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
     }
 
     if (showCameraSimulationForAdd) {
-        CameraScannerSimulationDialog(
+        BarcodeScannerDialog(
             allMedicines = medicines,
             isBengali = isBengali,
             onSelectBarcode = { code ->
@@ -12031,7 +12334,7 @@ fun AccountScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
     }
 
     if (showMapPicker) {
-        InteractiveBangladeshMapDialog(
+        LiveLocationMapDialog(
             isBengali = isBengali,
             currLat = lat,
             currLng = lng,
@@ -12694,7 +12997,7 @@ fun EditProfileDialog(
     }
 
     if (showMapPickerInDialog) {
-        InteractiveBangladeshMapDialog(
+        LiveLocationMapDialog(
             isBengali = isBengali,
             currLat = lat,
             currLng = lng,
@@ -12708,115 +13011,157 @@ fun EditProfileDialog(
     }
 }
 
-// Interactive Google map picker simulations
+/**
+ * Real, live OpenStreetMap picker (osmdroid — free, no API key) with pinch-zoom/pan,
+ * tap-to-place-pin, and a GPS "use my location" button via FusedLocationProviderClient.
+ * Replaces the old canvas grid-tap simulation.
+ */
+@OptIn(ExperimentalPermissionsApi::class)
+@SuppressLint("MissingPermission")
 @Composable
-fun InteractiveBangladeshMapDialog(
+fun LiveLocationMapDialog(
     isBengali: Boolean,
     currLat: Double,
     currLng: Double,
     onLocationSelected: (Double, Double) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var selectLat by remember { mutableStateOf(currLat) }
-    var selectLng by remember { mutableStateOf(currLng) }
+    val context = LocalContext.current
+    val locationPermissionState = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
+    val hasInitialLocation = currLat != 0.0 || currLng != 0.0
+    val initialPoint = remember { GeoPoint(if (hasInitialLocation) currLat else 24.8949, if (hasInitialLocation) currLng else 91.8687) }
+    var selectLat by remember { mutableStateOf(initialPoint.latitude) }
+    var selectLng by remember { mutableStateOf(initialPoint.longitude) }
+    var mapViewRef by remember { mutableStateOf<MapView?>(null) }
+    var markerRef by remember { mutableStateOf<Marker?>(null) }
 
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            colors = CardDefaults.cardColors(containerColor = DarkSurface),
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = if (isBengali) "📍 Google Map অবস্থান নির্ধারণকারী" else "📍 Google Map Location Simulator",
-                    color = DarkTextPrimary,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = if (isBengali) "ম্যাপের যেকোন জায়গায় হাত দিয়ে ট্র্যাপ করে আপনার পিন অবস্থান স্লাইড করুন" else "Tap anywhere on this interactive grid canvas to displace current location marker pin:",
-                    color = DarkTextSecondary,
-                    fontSize = 11.sp,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
+    DisposableEffect(Unit) {
+        onDispose { mapViewRef?.onDetach() }
+    }
 
-                // Interactive Canvas Map representation
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                        .background(Color(0xFF242F3E), RoundedCornerShape(12.dp))
-                        .pointerInput(Unit) {
-                            detectTapGestures { offset ->
-                                // Map scale simulation logic: Map offset to lat/lng centered near Dhaka Bangladesh (23.8, 90.3)
-                                val width = size.width
-                                val height = size.height
-                                val normalizedX = offset.x / width
-                                val normalizedY = offset.y / height
-                                
-                                // map normalized coord to delta around Bangladesh region
-                                selectLat = 24.5 - (normalizedY * 2.0) // range ~22.5 to ~24.5
-                                selectLng = 89.5 + (normalizedX * 2.0) // range ~89.5 to ~91.5
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Box(modifier = Modifier.fillMaxSize().background(GlassBackgroundGradient)) {
+
+            AndroidView(
+                modifier = Modifier.fillMaxSize(),
+                factory = { ctx ->
+                    OsmConfiguration.getInstance().userAgentValue = ctx.packageName
+                    MapView(ctx).apply {
+                        setTileSource(TileSourceFactory.MAPNIK)
+                        setMultiTouchControls(true)
+                        controller.setZoom(15.0)
+                        controller.setCenter(initialPoint)
+
+                        val marker = Marker(this).apply {
+                            position = initialPoint
+                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                            title = if (isBengali) "নির্বাচিত অবস্থান" else "Selected location"
+                        }
+                        overlays.add(marker)
+                        markerRef = marker
+
+                        val eventsReceiver = object : MapEventsReceiver {
+                            override fun singleTapConfirmedHelper(p: GeoPoint): Boolean {
+                                selectLat = p.latitude
+                                selectLng = p.longitude
+                                marker.position = p
+                                invalidate()
+                                return true
                             }
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    // Custom grid lines & compass markers drawing
-                    Canvas(modifier = Modifier.fillMaxSize()) {
-                        val strokeColor = Color.LightGray.copy(alpha = 0.2f)
-                        
-                        // Draw grid lines
-                        for (i in 1..4) {
-                            val xPos = size.width * (i / 5.0f)
-                            drawLine(color = strokeColor, start = androidx.compose.ui.geometry.Offset(xPos, 0f), end = androidx.compose.ui.geometry.Offset(xPos, size.height))
-                            
-                            val yPos = size.height * (i / 5.0f)
-                            drawLine(color = strokeColor, start = androidx.compose.ui.geometry.Offset(0f, yPos), end = androidx.compose.ui.geometry.Offset(size.width, yPos))
+                            override fun longPressHelper(p: GeoPoint): Boolean = false
                         }
-                    }
+                        overlays.add(0, MapEventsOverlay(eventsReceiver))
 
-                    // Simulated Map Pin
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            Icons.Filled.MyLocation,
-                            contentDescription = "pointer",
-                            tint = DarkAccentRed,
-                            modifier = Modifier.size(32.dp)
+                        mapViewRef = this
+                    }
+                }
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                GlassIconButton(onClick = onDismiss, icon = Icons.Filled.ArrowBack, contentDescription = "Back", tint = DarkTextPrimary)
+                GlassPanel(modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp)) {
+                    Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.LocationOn, contentDescription = null, tint = DarkTextSecondary, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            if (isBengali) "ম্যাপে ট্যাপ করে অবস্থান বেছে নিন" else "Tap the map to set a location",
+                            color = DarkTextSecondary,
+                            fontSize = 12.sp
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Box(
-                            modifier = Modifier
-                                .background(Color.Black.copy(alpha = 0.7f), RoundedCornerShape(4.dp))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                "FARMASITY FAST PIN",
-                                color = Color.White,
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.height(12.dp))
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 18.dp, bottom = 180.dp)
+            ) {
+                GlassIconButton(
+                    onClick = {
+                        if (locationPermissionState.status.isGranted) {
+                            val fusedClient = LocationServices.getFusedLocationProviderClient(context)
+                            try {
+                                fusedClient.lastLocation.addOnSuccessListener { location ->
+                                    if (location != null) {
+                                        selectLat = location.latitude
+                                        selectLng = location.longitude
+                                        val p = GeoPoint(location.latitude, location.longitude)
+                                        markerRef?.position = p
+                                        mapViewRef?.controller?.animateTo(p)
+                                        mapViewRef?.invalidate()
+                                    }
+                                }
+                            } catch (e: SecurityException) { /* permission was revoked mid-flight */ }
+                        } else {
+                            locationPermissionState.launchPermissionRequest()
+                        }
+                    },
+                    icon = Icons.Filled.MyLocation,
+                    contentDescription = if (isBengali) "আমার অবস্থান" else "Use my location",
+                    tint = if (locationPermissionState.status.isGranted) DarkAccentGold else DarkTextSecondary
+                )
+            }
 
-                // GPS display labels
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("LAT: ${String.format("%.4f", selectLat)}", color = DarkAccentGold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    Text("LNG: ${String.format("%.4f", selectLng)}", color = DarkAccentGold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = onDismiss) { Text(if (isBengali) "বাতিল" else "Cancel", color = DarkTextSecondary) }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(
-                        colors = ButtonDefaults.buttonColors(containerColor = DarkAccentRed, contentColor = DarkAccentText),
-                        onClick = { onLocationSelected(selectLat, selectLng) }
-                    ) {
-                        Text(if (isBengali) "কনফার্ম সিলেক্ট" else "Select Location", color = DarkAccentText, fontWeight = FontWeight.Bold)
+            GlassPanel(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth(),
+                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                strong = true
+            ) {
+                Column(modifier = Modifier.padding(18.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .width(36.dp)
+                            .height(4.dp)
+                            .background(DarkTextSecondary.copy(alpha = 0.3f), RoundedCornerShape(3.dp))
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("LAT: ${String.format("%.5f", selectLat)}", color = DarkAccentGold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("LNG: ${String.format("%.5f", selectLng)}", color = DarkAccentGold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+                            Text(if (isBengali) "বাতিল" else "Cancel")
+                        }
+                        Button(
+                            onClick = { onLocationSelected(selectLat, selectLng) },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = DarkAccentRed, contentColor = DarkAccentText)
+                        ) {
+                            Text(if (isBengali) "নিশ্চিত করুন" else "Confirm location", fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
@@ -14409,11 +14754,12 @@ fun CustomerPortalScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
     var showPortalSwitchDialog by remember { mutableStateOf(false) }
 
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(DarkSurface)
+                    .background(GlassFillStrong)
                     .windowInsetsPadding(WindowInsets.statusBars)
                     .padding(horizontal = 16.dp, vertical = 14.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -14424,35 +14770,37 @@ fun CustomerPortalScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Box(
                         modifier = Modifier
-                            .background(Color(0xFF0288D1).copy(alpha = 0.15f), RoundedCornerShape(6.dp))
-                            .border(1.dp, Color(0xFF0288D1).copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                            .background(DarkAccentRed.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                            .border(1.dp, DarkAccentRed.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
                             .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
                         Text(
                             text = if (isBengali) "কনজিউমার পোর্টাল" else "Consumer Portal",
-                            color = Color(0xFF0288D1),
+                            color = DarkAccentRed,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
                 }
-                
-                IconButton(
+
+                GlassIconButton(
                     onClick = { showEditProfileDialog = true },
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Edit,
-                        contentDescription = if (isBengali) "প্রোফাইল পরিবর্তন" else "Edit Profile",
-                        tint = DarkTextSecondary
-                    )
-                }
+                    icon = Icons.Filled.Edit,
+                    contentDescription = if (isBengali) "প্রোফাইল পরিবর্তন" else "Edit Profile",
+                    tint = DarkTextSecondary,
+                    size = 36.dp
+                )
             }
         },
         bottomBar = {
             NavigationBar(
-                containerColor = DarkSurface,
-                modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
+                containerColor = Color.Transparent,
+                modifier = Modifier
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
+                    .clip(RoundedCornerShape(26.dp))
+                    .background(GlassFillStrong, RoundedCornerShape(26.dp))
+                    .border(1.dp, GlassBorder, RoundedCornerShape(26.dp))
             ) {
                 val tabs = listOf(
                     Triple(if (isBengali) "ওষুধ খুঁজুন" else "Search Meds", Icons.Filled.Search, Icons.Outlined.Search),
@@ -14505,7 +14853,7 @@ fun CustomerPortalScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                             unselectedIconColor = DarkTextSecondary.copy(alpha = 0.6f),
                             selectedTextColor = DarkTextPrimary,
                             unselectedTextColor = DarkTextSecondary.copy(alpha = 0.5f),
-                            indicatorColor = if (isDarkModeGlobal) Color.White else Color.Black
+                            indicatorColor = DarkAccentRed
                         )
                     )
                 }
@@ -14516,7 +14864,7 @@ fun CustomerPortalScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(DarkBg)
+                .background(GlassBackgroundGradient)
         ) {
             // TAB PANELS INTERCHANGING
             if (activeTab == 0) {
