@@ -1,0 +1,6 @@
+{
+  "name": "Nikot",
+  "description": "A modern mobile pharmacy management app with sales, inventory, reporting, and account management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
