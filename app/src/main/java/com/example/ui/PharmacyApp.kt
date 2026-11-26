@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.animation.core.*
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import com.example.data.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -94,6 +95,17 @@ val DarkTextPrimary: Color @Composable get() = if (isDarkModeGlobal) Color(0xFFE
 val DarkTextSecondary: Color @Composable get() = if (isDarkModeGlobal) Color(0xFF8BB1B8) else Color(0xFF4B6E75)
 val SleekBorderColor: Color @Composable get() = if (isDarkModeGlobal) Color(0xFF18454D).copy(alpha = 0.4f) else Color(0xFFD0E5E8)
 
+// ---- Semantic status colors (single source of truth, consistent across every screen) ----
+val SuccessColor: Color @Composable get() = if (isDarkModeGlobal) Color(0xFF34D399) else Color(0xFF189065)
+val WarningColor: Color @Composable get() = if (isDarkModeGlobal) Color(0xFFFBBF4A) else Color(0xFFB8740A)
+val InfoColor: Color @Composable get() = if (isDarkModeGlobal) Color(0xFF38BDF8) else Color(0xFF0C7F90)
+val DangerColor: Color @Composable get() = if (isDarkModeGlobal) Color(0xFFFF6B6B) else Color(0xFFD1413B)
+val PremiumGoldGradient: Brush @Composable get() = Brush.linearGradient(listOf(Color(0xFFE6C77A), Color(0xFFBF9A4E)))
+
+/** Soft ambient drop-shadow that reads as "premium" without the harsh default Material shadow. */
+fun Modifier.premiumShadow(radius: Dp = 18.dp, shape: Shape = RoundedCornerShape(20.dp), alpha: Float = 0.22f): Modifier =
+    this.shadow(elevation = radius, shape = shape, ambientColor = Color.Black.copy(alpha = alpha), spotColor = Color.Black.copy(alpha = alpha))
+
 // ---- Glass UI tokens (glassmorphism overlay system, premium minimal look) ----
 val GlassFill: Color @Composable get() = if (isDarkModeGlobal) Color.White.copy(alpha = 0.055f) else Color.White.copy(alpha = 0.62f)
 val GlassFillStrong: Color @Composable get() = if (isDarkModeGlobal) Color.White.copy(alpha = 0.09f) else Color.White.copy(alpha = 0.78f)
@@ -118,6 +130,7 @@ fun GlassPanel(
     val fill = if (strong) GlassFillStrong else GlassFill
     Box(
         modifier = modifier
+            .premiumShadow(radius = 14.dp, shape = shape, alpha = if (isDarkModeGlobal) 0.28f else 0.10f)
             .clip(shape)
             .background(fill, shape)
             .border(1.dp, GlassBorder, shape),
@@ -1120,7 +1133,7 @@ fun StaffUnlinkedPharmacyScreen(
                 .fillMaxWidth()
                 .height(48.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF4CAF50),
+                containerColor = SuccessColor,
                 contentColor = Color.White
             ),
             shape = RoundedCornerShape(12.dp)
@@ -1175,7 +1188,7 @@ fun StaffAddPharmacyDialog(
                 .padding(8.dp),
             shape = RoundedCornerShape(18.dp),
             colors = CardDefaults.cardColors(containerColor = DarkSurface),
-            border = BorderStroke(1.2.dp, Color(0xFF4CAF50).copy(alpha = 0.5f))
+            border = BorderStroke(1.2.dp, SuccessColor.copy(alpha = 0.5f))
         ) {
             Column(
                 modifier = Modifier
@@ -1191,13 +1204,13 @@ fun StaffAddPharmacyDialog(
                         Box(
                             modifier = Modifier
                                 .size(36.dp)
-                                .background(Color(0xFF4CAF50).copy(alpha = 0.15f), RoundedCornerShape(8.dp)),
+                                .background(SuccessColor.copy(alpha = 0.15f), RoundedCornerShape(8.dp)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.LocalPharmacy,
                                 contentDescription = null,
-                                tint = Color(0xFF4CAF50),
+                                tint = SuccessColor,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -1242,9 +1255,9 @@ fun StaffAddPharmacyDialog(
                     textStyle = LocalTextStyle.current.copy(color = DarkTextPrimary),
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF4CAF50),
+                        focusedBorderColor = SuccessColor,
                         unfocusedBorderColor = SleekBorderColor,
-                        focusedLabelColor = Color(0xFF4CAF50),
+                        focusedLabelColor = SuccessColor,
                         unfocusedLabelColor = DarkTextSecondary
                     )
                 )
@@ -1265,9 +1278,9 @@ fun StaffAddPharmacyDialog(
                     textStyle = LocalTextStyle.current.copy(color = DarkTextPrimary),
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF4CAF50),
+                        focusedBorderColor = SuccessColor,
                         unfocusedBorderColor = SleekBorderColor,
-                        focusedLabelColor = Color(0xFF4CAF50),
+                        focusedLabelColor = SuccessColor,
                         unfocusedLabelColor = DarkTextSecondary
                     )
                 )
@@ -1319,7 +1332,7 @@ fun StaffAddPharmacyDialog(
                         },
                         enabled = !isSubmitting,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF4CAF50),
+                            containerColor = SuccessColor,
                             contentColor = Color.White
                         ),
                         shape = RoundedCornerShape(10.dp)
@@ -1652,7 +1665,7 @@ fun DashboardScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                border = BorderStroke(1.dp, Color(0xFFFF9800).copy(alpha = 0.4f)),
+                border = BorderStroke(1.dp, WarningColor.copy(alpha = 0.4f)),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -1663,7 +1676,7 @@ fun DashboardScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                         Icon(
                             imageVector = Icons.Filled.QueryBuilder,
                             contentDescription = "Pending Approval",
-                            tint = Color(0xFFFF9800),
+                            tint = WarningColor,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -1821,7 +1834,7 @@ fun DashboardScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Button(
                                         onClick = { viewModel.approvePendingStockIn(current) },
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50), contentColor = Color.White),
+                                        colors = ButtonDefaults.buttonColors(containerColor = SuccessColor, contentColor = Color.White),
                                         modifier = Modifier.height(32.dp),
                                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                                         shape = RoundedCornerShape(8.dp)
@@ -1862,7 +1875,7 @@ fun DashboardScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                     viewModel.approvePendingStockIn(edited)
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50), contentColor = Color.White),
+                            colors = ButtonDefaults.buttonColors(containerColor = SuccessColor, contentColor = Color.White),
                             modifier = Modifier.weight(1f).height(40.dp),
                             shape = RoundedCornerShape(10.dp)
                         ) {
@@ -1943,12 +1956,12 @@ fun DashboardScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                     
                                     Box(
                                         modifier = Modifier
-                                            .background(Color(0xFFFF9800).copy(alpha = 0.1f), RoundedCornerShape(4.dp))
+                                            .background(WarningColor.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
                                             .padding(horizontal = 8.dp, vertical = 4.dp)
                                     ) {
                                         Text(
                                             text = if (isBengali) "অপেক্ষমাণ" else "Pending",
-                                            color = Color(0xFFFF9800),
+                                            color = WarningColor,
                                             fontSize = 10.sp,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -1967,7 +1980,7 @@ fun DashboardScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                border = BorderStroke(1.dp, Color(0xFF2196F3).copy(alpha = 0.4f)),
+                border = BorderStroke(1.dp, InfoColor.copy(alpha = 0.4f)),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -1978,7 +1991,7 @@ fun DashboardScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                         Icon(
                             imageVector = Icons.Filled.QueryBuilder,
                             contentDescription = "Pending Medicine Approval",
-                            tint = Color(0xFF2196F3),
+                            tint = InfoColor,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -2069,7 +2082,7 @@ fun DashboardScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                         Box(
                                             modifier = Modifier
                                                 .background(
-                                                    if (pending.targetMedicineId == null) Color(0xFF4CAF50).copy(alpha = 0.15f) else Color(0xFF2196F3).copy(alpha = 0.15f),
+                                                    if (pending.targetMedicineId == null) SuccessColor.copy(alpha = 0.15f) else InfoColor.copy(alpha = 0.15f),
                                                     RoundedCornerShape(4.dp)
                                                 )
                                                 .padding(horizontal = 6.dp, vertical = 2.dp)
@@ -2080,7 +2093,7 @@ fun DashboardScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                                 } else {
                                                     if (isBengali) "স্টক আপডেট" else "Stock Update"
                                                 },
-                                                color = if (pending.targetMedicineId == null) Color(0xFF4CAF50) else Color(0xFF2196F3),
+                                                color = if (pending.targetMedicineId == null) SuccessColor else InfoColor,
                                                 fontSize = 9.sp,
                                                 fontWeight = FontWeight.Bold
                                             )
@@ -2106,7 +2119,7 @@ fun DashboardScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Button(
                                         onClick = { viewModel.approvePendingMedicine(pending) },
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50), contentColor = Color.White),
+                                        colors = ButtonDefaults.buttonColors(containerColor = SuccessColor, contentColor = Color.White),
                                         modifier = Modifier.height(32.dp),
                                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                                         shape = RoundedCornerShape(8.dp)
@@ -2191,12 +2204,12 @@ fun DashboardScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                     
                                     Box(
                                         modifier = Modifier
-                                            .background(Color(0xFFFF9800).copy(alpha = 0.1f), RoundedCornerShape(4.dp))
+                                            .background(WarningColor.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
                                             .padding(horizontal = 8.dp, vertical = 4.dp)
                                     ) {
                                         Text(
                                             text = if (isBengali) "অপেক্ষমাণ" else "Pending",
-                                            color = Color(0xFFFF9800),
+                                            color = WarningColor,
                                             fontSize = 10.sp,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -2287,9 +2300,9 @@ fun DashboardScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                                 onClick = { viewModel.approvePermissionRequest(req) },
                                                 modifier = Modifier
                                                     .size(36.dp)
-                                                    .background(Color(0xFF4CAF50).copy(alpha = 0.15f), androidx.compose.foundation.shape.CircleShape)
+                                                    .background(SuccessColor.copy(alpha = 0.15f), androidx.compose.foundation.shape.CircleShape)
                                             ) {
-                                                Icon(Icons.Default.Check, contentDescription = "Approve", tint = Color(0xFF4CAF50), modifier = Modifier.size(18.dp))
+                                                Icon(Icons.Default.Check, contentDescription = "Approve", tint = SuccessColor, modifier = Modifier.size(18.dp))
                                             }
                                         }
                                     }
@@ -2308,7 +2321,7 @@ fun DashboardScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                    border = BorderStroke(1.dp, Color(0xFF00BCD4).copy(alpha = 0.4f)),
+                    border = BorderStroke(1.dp, InfoColor.copy(alpha = 0.4f)),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -2319,7 +2332,7 @@ fun DashboardScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                             Icon(
                                 imageVector = Icons.Filled.ShoppingCart,
                                 contentDescription = "Customer Orders",
-                                tint = Color(0xFF00BCD4),
+                                tint = InfoColor,
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -2365,7 +2378,7 @@ fun DashboardScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                             )
                                             Text(
                                                 text = "${if (isBengali) "ফার্মেসি: " else "Pharmacy: "}${order.pharmacyName}",
-                                                color = Color(0xFF00BCD4),
+                                                color = InfoColor,
                                                 fontWeight = FontWeight.Medium,
                                                 fontSize = 12.sp
                                             )
@@ -2406,7 +2419,7 @@ fun DashboardScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Button(
                                             onClick = { viewModel.updateOrderStatus(order, "Confirmed") },
-                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50), contentColor = Color.White),
+                                            colors = ButtonDefaults.buttonColors(containerColor = SuccessColor, contentColor = Color.White),
                                             modifier = Modifier.height(32.dp),
                                             contentPadding = PaddingValues(horizontal = 12.dp),
                                             shape = RoundedCornerShape(8.dp)
@@ -2566,6 +2579,7 @@ fun DashboardCard(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 115.dp)
+            .premiumShadow(radius = 10.dp, shape = RoundedCornerShape(24.dp))
             .clickable { onClick() },
         colors = CardDefaults.cardColors(containerColor = DarkCardBg),
         shape = RoundedCornerShape(24.dp),
@@ -2585,7 +2599,11 @@ fun DashboardCard(
                 Box(
                     modifier = Modifier
                         .size(36.dp)
-                        .background(highlight.copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
+                        .background(
+                            Brush.linearGradient(listOf(highlight.copy(alpha = 0.22f), highlight.copy(alpha = 0.08f))),
+                            RoundedCornerShape(12.dp)
+                        )
+                        .border(1.dp, highlight.copy(alpha = 0.25f), RoundedCornerShape(12.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -2619,7 +2637,7 @@ fun DashboardCard(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = value,
-                    color = Color.White,
+                    color = DarkTextPrimary,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -4854,7 +4872,7 @@ fun SalesScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                             selectedOrderForReceipt = ord
                                             orderBillNumber = "BILL-ON-${System.currentTimeMillis() % 1000000}"
                                         },
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50), contentColor = Color.White),
+                                        colors = ButtonDefaults.buttonColors(containerColor = SuccessColor, contentColor = Color.White),
                                         shape = RoundedCornerShape(8.dp),
                                         modifier = Modifier.height(36.dp),
                                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
@@ -9012,7 +9030,7 @@ fun ReportsScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                 .height(95.dp)
                                 .clickable { showProfitsListDialog = true },
                             colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                            border = BorderStroke(1.dp, if (totalProfit >= 0) Color(0xFF4CAF50).copy(alpha = 0.2f) else DarkAccentRed.copy(alpha = 0.2f))
+                            border = BorderStroke(1.dp, if (totalProfit >= 0) SuccessColor.copy(alpha = 0.2f) else DarkAccentRed.copy(alpha = 0.2f))
                         ) {
                             Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.Center) {
                                 val resolvedReportProfitLabel = if (isBengali) {
@@ -9037,7 +9055,7 @@ fun ReportsScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                 ) {
                                     Text(
                                         text = "৳${formatCurrency(totalProfit, isBengali)}",
-                                        color = if (totalProfit >= 0) Color(0xFF4CAF50) else DarkAccentRed,
+                                        color = if (totalProfit >= 0) SuccessColor else DarkAccentRed,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 15.sp,
                                         modifier = Modifier.weight(1f)
@@ -9045,7 +9063,7 @@ fun ReportsScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                     Icon(
                                         imageVector = Icons.Filled.ChevronRight,
                                         contentDescription = "Details",
-                                        tint = if (totalProfit >= 0) Color(0xFF4CAF50) else DarkAccentRed,
+                                        tint = if (totalProfit >= 0) SuccessColor else DarkAccentRed,
                                         modifier = Modifier.size(16.dp)
                                     )
                                 }
@@ -9149,7 +9167,7 @@ fun ReportsScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                             )
                             Text(
                                 text = "৳${formatCurrency(potentialProfit, isBengali)}",
-                                color = if (potentialProfit >= 0) Color(0xFF4CAF50) else DarkAccentRed,
+                                color = if (potentialProfit >= 0) SuccessColor else DarkAccentRed,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp
                             )
@@ -9475,7 +9493,7 @@ fun ReportsScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                                     when {
                                                         diff < 0 -> accentRed
                                                         diff < 30L * 24 * 3600 * 1000 -> accentGold
-                                                        else -> Color(0xFF4CAF50)
+                                                        else -> SuccessColor
                                                     }
                                                 } catch (_: Exception) {
                                                     textSecondary
@@ -9538,11 +9556,11 @@ fun ReportsScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                     } else {
                                         Text(
                                             text = if (isBengali) "পর্যাপ্ত স্টক" else "In Stock",
-                                            color = Color(0xFF4CAF50),
+                                            color = SuccessColor,
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold,
                                             modifier = Modifier
-                                                .background(Color(0xFF4CAF50).copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                                                .background(SuccessColor.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
                                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                                         )
                                     }
@@ -10591,7 +10609,7 @@ fun ReportProfitHistoryDialog(
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                     colors = CardDefaults.cardColors(containerColor = DarkBg),
-                    border = BorderStroke(1.dp, if (totalProfitCalculated >= 0) Color(0xFF4CAF50).copy(alpha = 0.3f) else DarkAccentRed.copy(alpha = 0.3f))
+                    border = BorderStroke(1.dp, if (totalProfitCalculated >= 0) SuccessColor.copy(alpha = 0.3f) else DarkAccentRed.copy(alpha = 0.3f))
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(12.dp),
@@ -10606,7 +10624,7 @@ fun ReportProfitHistoryDialog(
                         )
                         Text(
                             text = "৳${formatCurrency(totalProfitCalculated, isBengali)}",
-                            color = if (totalProfitCalculated >= 0) Color(0xFF4CAF50) else DarkAccentRed,
+                            color = if (totalProfitCalculated >= 0) SuccessColor else DarkAccentRed,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -10649,13 +10667,13 @@ fun ReportProfitHistoryDialog(
                                         Column(horizontalAlignment = Alignment.End) {
                                             Text(
                                                 text = "৳${formatCurrency(item.profit, isBengali)}",
-                                                color = if (item.profit >= 0) Color(0xFF4CAF50) else DarkAccentRed,
+                                                color = if (item.profit >= 0) SuccessColor else DarkAccentRed,
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 15.sp
                                             )
                                             Text(
                                                 text = if (item.profit >= 0) (if (isBengali) "লাভ" else "Profit") else (if (isBengali) "ক্ষতি" else "Loss"),
-                                                color = if (item.profit >= 0) Color(0xFF4CAF50) else DarkAccentRed,
+                                                color = if (item.profit >= 0) SuccessColor else DarkAccentRed,
                                                 fontSize = 10.sp
                                             )
                                         }
@@ -10797,17 +10815,17 @@ fun AccountScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                         onClick = { showStaffAddPharmacyDialog = true },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = DarkSurface,
-                            contentColor = Color(0xFF4CAF50)
+                            contentColor = SuccessColor
                         ),
                         shape = RoundedCornerShape(8.dp),
-                        border = BorderStroke(1.dp, Color(0xFF4CAF50).copy(alpha = 0.3f)),
+                        border = BorderStroke(1.dp, SuccessColor.copy(alpha = 0.3f)),
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.LocalPharmacy,
                             contentDescription = "Pharmacy Link",
                             modifier = Modifier.size(16.dp),
-                            tint = Color(0xFF4CAF50)
+                            tint = SuccessColor
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
@@ -10895,7 +10913,7 @@ fun AccountScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                 colors = CardDefaults.cardColors(containerColor = DarkSurface),
                 border = BorderStroke(
                     1.2.dp,
-                    if (currentUser.linkedAdminUsername.isNotBlank()) Color(0xFF4CAF50) else DarkAccentGold
+                    if (currentUser.linkedAdminUsername.isNotBlank()) SuccessColor else DarkAccentGold
                 ),
                 shape = RoundedCornerShape(16.dp)
             ) {
@@ -10908,7 +10926,7 @@ fun AccountScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                             modifier = Modifier
                                 .size(40.dp)
                                 .background(
-                                    (if (currentUser.linkedAdminUsername.isNotBlank()) Color(0xFF4CAF50) else DarkAccentGold).copy(alpha = 0.15f),
+                                    (if (currentUser.linkedAdminUsername.isNotBlank()) SuccessColor else DarkAccentGold).copy(alpha = 0.15f),
                                     RoundedCornerShape(10.dp)
                                 ),
                             contentAlignment = Alignment.Center
@@ -10916,7 +10934,7 @@ fun AccountScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                             Icon(
                                 imageVector = if (currentUser.linkedAdminUsername.isNotBlank()) Icons.Default.CheckCircle else Icons.Default.Lock,
                                 contentDescription = null,
-                                tint = if (currentUser.linkedAdminUsername.isNotBlank()) Color(0xFF4CAF50) else DarkAccentGold,
+                                tint = if (currentUser.linkedAdminUsername.isNotBlank()) SuccessColor else DarkAccentGold,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -10947,7 +10965,7 @@ fun AccountScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(44.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                            colors = ButtonDefaults.buttonColors(containerColor = SuccessColor),
                             shape = RoundedCornerShape(10.dp)
                         ) {
                             Icon(Icons.Default.Storefront, "add pharmacy", tint = Color.White, modifier = Modifier.size(18.dp))
@@ -11005,8 +11023,8 @@ fun AccountScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                     }
                     val roleBadgeColor = when {
                         viewModel.isMerchant(currentUser) -> DarkAccentRed
-                        currentUser.role == "staff" -> Color(0xFF4CAF50)
-                        else -> Color(0xFF2196F3)
+                        currentUser.role == "staff" -> SuccessColor
+                        else -> InfoColor
                     }
                     Box(
                         modifier = Modifier
@@ -11270,7 +11288,7 @@ fun AccountScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                     .fillMaxHeight(0.85f),
                 colors = CardDefaults.cardColors(containerColor = DarkSurface),
                 shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, Color(0xFF4CAF50).copy(alpha = 0.4f))
+                border = BorderStroke(1.dp, SuccessColor.copy(alpha = 0.4f))
             ) {
                 if (selectedStaffForDetails == null) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -11283,7 +11301,7 @@ fun AccountScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                 Icon(
                                     imageVector = Icons.Default.Person,
                                     contentDescription = "Connected Staff",
-                                    tint = Color(0xFF4CAF50),
+                                    tint = SuccessColor,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -11312,7 +11330,7 @@ fun AccountScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                 showAddStaffMemberDialog = true
                             },
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF4CAF50),
+                                containerColor = SuccessColor,
                                 contentColor = Color.White
                             ),
                             shape = RoundedCornerShape(8.dp),
@@ -11372,7 +11390,7 @@ fun AccountScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Button(
                                                 onClick = { viewModel.approvePermissionRequest(req) },
-                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50), contentColor = Color.White),
+                                                colors = ButtonDefaults.buttonColors(containerColor = SuccessColor, contentColor = Color.White),
                                                 shape = RoundedCornerShape(6.dp),
                                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
                                             ) {
@@ -11553,7 +11571,7 @@ fun AccountScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                         )
                                         Text(
                                             text = "৳${formatBengaliNumber(String.format("%.1f", totalMoneyToday))}",
-                                            color = Color(0xFF4CAF50),
+                                            color = SuccessColor,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 16.sp
                                         )
@@ -11618,9 +11636,9 @@ fun AccountScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                                     modifier = Modifier.weight(0.7f)
                                                 ) {
                                                     val (icon, tint, title) = when (log) {
-                                                        is ActivityLog.Sale -> Triple(Icons.Default.ShoppingCart, Color(0xFF4CAF50), if (isBengali) "ওষুধ বিক্রয় (বিল #${log.bill.billNumber})" else "Medicine Sale (Bill #${log.bill.billNumber})")
-                                                        is ActivityLog.StockIn -> Triple(Icons.Default.QueryBuilder, Color(0xFFFF9800), if (isBengali) "স্টক ইন অনুরোধ (অপেক্ষমাণ)" else "Stock-In Request (Pending)")
-                                                        is ActivityLog.NewMed -> Triple(Icons.Default.AddCircle, Color(0xFF2196F3), if (isBengali) "নতুন ওষুধ অনুরোধ (অপেক্ষমাণ)" else "New Medicine Request (Pending)")
+                                                        is ActivityLog.Sale -> Triple(Icons.Default.ShoppingCart, SuccessColor, if (isBengali) "ওষুধ বিক্রয় (বিল #${log.bill.billNumber})" else "Medicine Sale (Bill #${log.bill.billNumber})")
+                                                        is ActivityLog.StockIn -> Triple(Icons.Default.QueryBuilder, WarningColor, if (isBengali) "স্টক ইন অনুরোধ (অপেক্ষমাণ)" else "Stock-In Request (Pending)")
+                                                        is ActivityLog.NewMed -> Triple(Icons.Default.AddCircle, InfoColor, if (isBengali) "নতুন ওষুধ অনুরোধ (অপেক্ষমাণ)" else "New Medicine Request (Pending)")
                                                     }
                                                     Icon(
                                                         imageVector = icon,
@@ -11659,7 +11677,7 @@ fun AccountScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                                     )
                                                     Text(
                                                         text = "${if (isBengali) "মোট বিক্রয়মূল্য: ৳" else "Total Amount: ৳"}${formatBengaliNumber(String.format("%.1f", log.bill.totalAmount))}",
-                                                        color = Color(0xFF4CAF50),
+                                                        color = SuccessColor,
                                                         fontWeight = FontWeight.Medium,
                                                         fontSize = 11.sp
                                                     )
@@ -11723,7 +11741,7 @@ fun AccountScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                     .padding(4.dp),
                 colors = CardDefaults.cardColors(containerColor = DarkSurface),
                 shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.5.dp, Color(0xFF4CAF50).copy(alpha = 0.6f))
+                border = BorderStroke(1.5.dp, SuccessColor.copy(alpha = 0.6f))
             ) {
                 Column(
                     modifier = Modifier
@@ -11739,7 +11757,7 @@ fun AccountScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                             Icon(
                                 imageVector = Icons.Default.PersonAdd,
                                 contentDescription = null,
-                                tint = Color(0xFF4CAF50),
+                                tint = SuccessColor,
                                 modifier = Modifier.size(22.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -11765,13 +11783,13 @@ fun AccountScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                         onValueChange = { newStaffName = it; addStaffError = "" },
                         label = { Text(if (isBengali) "স্টাফের পূর্ণ নাম" else "Staff Full Name") },
                         placeholder = { Text(if (isBengali) "যেমন: মোঃ রহিম উদ্দিন" else "e.g. Md Rahim", color = DarkTextSecondary.copy(alpha = 0.4f)) },
-                        leadingIcon = { Icon(Icons.Default.Badge, contentDescription = null, tint = Color(0xFF4CAF50)) },
+                        leadingIcon = { Icon(Icons.Default.Badge, contentDescription = null, tint = SuccessColor) },
                         textStyle = LocalTextStyle.current.copy(color = DarkTextPrimary),
                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF4CAF50),
+                            focusedBorderColor = SuccessColor,
                             unfocusedBorderColor = SleekBorderColor,
-                            focusedLabelColor = Color(0xFF4CAF50),
+                            focusedLabelColor = SuccessColor,
                             unfocusedLabelColor = DarkTextSecondary
                         ),
                         shape = RoundedCornerShape(10.dp)
@@ -11782,13 +11800,13 @@ fun AccountScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                         onValueChange = { newStaffUsername = it.filter { c -> c.isLetterOrDigit() || c == '_' }; addStaffError = "" },
                         label = { Text(if (isBengali) "লগইন ইউজারনেম (Username)" else "Login Username") },
                         placeholder = { Text("e.g. rahim_staff", color = DarkTextSecondary.copy(alpha = 0.4f)) },
-                        leadingIcon = { Icon(Icons.Default.AlternateEmail, contentDescription = null, tint = Color(0xFF4CAF50)) },
+                        leadingIcon = { Icon(Icons.Default.AlternateEmail, contentDescription = null, tint = SuccessColor) },
                         textStyle = LocalTextStyle.current.copy(color = DarkTextPrimary),
                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF4CAF50),
+                            focusedBorderColor = SuccessColor,
                             unfocusedBorderColor = SleekBorderColor,
-                            focusedLabelColor = Color(0xFF4CAF50),
+                            focusedLabelColor = SuccessColor,
                             unfocusedLabelColor = DarkTextSecondary
                         ),
                         shape = RoundedCornerShape(10.dp)
@@ -11799,13 +11817,13 @@ fun AccountScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                         onValueChange = { newStaffPhone = it; addStaffError = "" },
                         label = { Text(if (isBengali) "মোবাইল নম্বর" else "Phone Number") },
                         placeholder = { Text("01700-000000", color = DarkTextSecondary.copy(alpha = 0.4f)) },
-                        leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null, tint = Color(0xFF4CAF50)) },
+                        leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null, tint = SuccessColor) },
                         textStyle = LocalTextStyle.current.copy(color = DarkTextPrimary),
                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF4CAF50),
+                            focusedBorderColor = SuccessColor,
                             unfocusedBorderColor = SleekBorderColor,
-                            focusedLabelColor = Color(0xFF4CAF50),
+                            focusedLabelColor = SuccessColor,
                             unfocusedLabelColor = DarkTextSecondary
                         ),
                         shape = RoundedCornerShape(10.dp)
@@ -11815,13 +11833,13 @@ fun AccountScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                         value = newStaffPass,
                         onValueChange = { newStaffPass = it; addStaffError = "" },
                         label = { Text(if (isBengali) "লগইন পাসওয়ার্ড" else "Login Password") },
-                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF4CAF50)) },
+                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = SuccessColor) },
                         textStyle = LocalTextStyle.current.copy(color = DarkTextPrimary),
                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF4CAF50),
+                            focusedBorderColor = SuccessColor,
                             unfocusedBorderColor = SleekBorderColor,
-                            focusedLabelColor = Color(0xFF4CAF50),
+                            focusedLabelColor = SuccessColor,
                             unfocusedLabelColor = DarkTextSecondary
                         ),
                         shape = RoundedCornerShape(10.dp)
@@ -11884,7 +11902,7 @@ fun AccountScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                     }
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50), contentColor = Color.White),
+                            colors = ButtonDefaults.buttonColors(containerColor = SuccessColor, contentColor = Color.White),
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -11980,7 +11998,7 @@ fun AccountScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                 shape = RoundedCornerShape(16.dp),
                 border = BorderStroke(
                     width = 1.dp,
-                    color = if (currentUser.linkedAdminUsername.isNotEmpty()) Color(0xFF4CAF50).copy(alpha = 0.4f) else DarkAccentGold.copy(alpha = 0.4f)
+                    color = if (currentUser.linkedAdminUsername.isNotEmpty()) SuccessColor.copy(alpha = 0.4f) else DarkAccentGold.copy(alpha = 0.4f)
                 )
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -11993,7 +12011,7 @@ fun AccountScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                             Icon(
                                 imageVector = if (currentUser.linkedAdminUsername.isNotEmpty()) Icons.Filled.CheckCircle else Icons.Filled.Info,
                                 contentDescription = "Connection Status",
-                                tint = if (currentUser.linkedAdminUsername.isNotEmpty()) Color(0xFF4CAF50) else DarkAccentGold,
+                                tint = if (currentUser.linkedAdminUsername.isNotEmpty()) SuccessColor else DarkAccentGold,
                                 modifier = Modifier.size(22.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -12052,7 +12070,7 @@ fun AccountScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                 showStaffAddPharmacyDialog = true
                             },
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF4CAF50),
+                                containerColor = SuccessColor,
                                 contentColor = Color.White
                             ),
                             shape = RoundedCornerShape(8.dp),
@@ -12074,8 +12092,8 @@ fun AccountScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(Color(0xFF4CAF50).copy(alpha = 0.1f), RoundedCornerShape(8.dp))
-                                .border(1.dp, Color(0xFF4CAF50).copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                                .background(SuccessColor.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+                                .border(1.dp, SuccessColor.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
                                 .padding(12.dp)
                         ) {
                             Column {
@@ -12152,7 +12170,7 @@ fun AccountScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                     }
                                     val (statusText, statusColor) = when (req.status) {
                                         "Pending" -> Pair(if (isBengali) "অপেক্ষমাণ" else "Pending", DarkAccentGold)
-                                        "Approved" -> Pair(if (isBengali) "অনুমোদিত" else "Approved", Color(0xFF4CAF50))
+                                        "Approved" -> Pair(if (isBengali) "অনুমোদিত" else "Approved", SuccessColor)
                                         else -> Pair(if (isBengali) "প্রত্যাখ্যাত" else "Rejected", DarkAccentRed)
                                     }
                                     Text(
@@ -12254,7 +12272,7 @@ fun AccountScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                             staffReqSecurityCode = ""
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50), contentColor = Color.White),
+                    colors = ButtonDefaults.buttonColors(containerColor = SuccessColor, contentColor = Color.White),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(if (isBengali) "অনুরোধ পাঠান" else "Send Request", fontWeight = FontWeight.Bold)
@@ -12429,12 +12447,12 @@ fun EditProfileDialog(
                                 modifier = Modifier
                                     .size(26.dp)
                                     .background(
-                                        color = if (isActive) DarkAccentRed else if (isCompleted) Color(0xFF4CAF50) else Color.White.copy(alpha = 0.05f),
+                                        color = if (isActive) DarkAccentRed else if (isCompleted) SuccessColor else Color.White.copy(alpha = 0.05f),
                                         shape = androidx.compose.foundation.shape.CircleShape
                                     )
                                     .border(
                                         width = 1.dp,
-                                        color = if (isActive) DarkAccentRed else if (isCompleted) Color(0xFF4CAF50) else Color.White.copy(alpha = 0.2f),
+                                        color = if (isActive) DarkAccentRed else if (isCompleted) SuccessColor else Color.White.copy(alpha = 0.2f),
                                         shape = androidx.compose.foundation.shape.CircleShape
                                     ),
                                 contentAlignment = Alignment.Center
@@ -12468,7 +12486,7 @@ fun EditProfileDialog(
                                     modifier = Modifier
                                         .width(20.dp)
                                         .height(2.dp)
-                                        .background(if (isCompleted) Color(0xFF4CAF50) else Color.White.copy(alpha = 0.1f))
+                                        .background(if (isCompleted) SuccessColor else Color.White.copy(alpha = 0.1f))
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                             }
@@ -12673,7 +12691,7 @@ fun EditProfileDialog(
                         // Accurate GPS Map Picker Button
                         Button(
                             onClick = { showMapPickerInDialog = true },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50), contentColor = Color.White),
+                            colors = ButtonDefaults.buttonColors(containerColor = SuccessColor, contentColor = Color.White),
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.fillMaxWidth().height(40.dp)
                         ) {
@@ -12985,7 +13003,7 @@ fun EditProfileDialog(
                                 )
                                 onDismiss()
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50), contentColor = Color.White),
+                            colors = ButtonDefaults.buttonColors(containerColor = SuccessColor, contentColor = Color.White),
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(if (isBengali) "সংরক্ষণ করুন" else "Save Changes", color = Color.White, fontWeight = FontWeight.Bold)
@@ -13969,7 +13987,7 @@ fun SuperAdminPortalScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                         width = 1.dp,
                                         color = when (profile.role) {
                                             "admin" -> Color(0xFF9C27B0).copy(alpha = 0.5f)
-                                            "staff" -> Color(0xFF4CAF50).copy(alpha = 0.4f)
+                                            "staff" -> SuccessColor.copy(alpha = 0.4f)
                                             else -> SleekBorderColor
                                         }
                                     )
@@ -13999,7 +14017,7 @@ fun SuperAdminPortalScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                             // Role Badge
                                             val (roleLabel, roleBg, roleFg) = when (profile.role) {
                                                 "admin" -> Triple(if (isBengali) "ফার্মেসি মালিক" else "Shop Owner", Color(0xFF9C27B0).copy(alpha = 0.2f), Color(0xFFE040FB))
-                                                "staff" -> Triple(if (isBengali) "কর্মচারী" else "Employee", Color(0xFF4CAF50).copy(alpha = 0.2f), Color(0xFF81C784))
+                                                "staff" -> Triple(if (isBengali) "কর্মচারী" else "Employee", SuccessColor.copy(alpha = 0.2f), Color(0xFF81C784))
                                                 else -> Triple(if (isBengali) "কাস্টমার" else "Customer", Color(0xFF29B6F6).copy(alpha = 0.2f), Color(0xFF4FC3F7))
                                             }
 
@@ -14885,7 +14903,7 @@ fun CustomerPortalScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                         colors = CardDefaults.cardColors(
                             containerColor = if (hasLocation) Color(0xFF1E2620) else Color(0xFF261D1D)
                         ),
-                        border = BorderStroke(1.dp, if (hasLocation) Color(0xFF4CAF50).copy(alpha = 0.5f) else DarkAccentGold.copy(alpha = 0.5f)),
+                        border = BorderStroke(1.dp, if (hasLocation) SuccessColor.copy(alpha = 0.5f) else DarkAccentGold.copy(alpha = 0.5f)),
                         shape = RoundedCornerShape(10.dp)
                     ) {
                         Row(
@@ -14899,7 +14917,7 @@ fun CustomerPortalScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                 Icon(
                                     imageVector = if (hasLocation) Icons.Filled.LocationOn else Icons.Filled.LocationOff,
                                     contentDescription = "Location",
-                                    tint = if (hasLocation) Color(0xFF4CAF50) else DarkAccentGold,
+                                    tint = if (hasLocation) SuccessColor else DarkAccentGold,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -14935,7 +14953,7 @@ fun CustomerPortalScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                             Box(
                                 modifier = Modifier
                                     .background(
-                                        if (hasLocation) Color(0xFF4CAF50).copy(alpha = 0.15f) else DarkAccentGold.copy(alpha = 0.15f),
+                                        if (hasLocation) SuccessColor.copy(alpha = 0.15f) else DarkAccentGold.copy(alpha = 0.15f),
                                         RoundedCornerShape(6.dp)
                                     )
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
@@ -15170,7 +15188,7 @@ fun CustomerPortalScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                     Card(
                                         modifier = Modifier.fillMaxWidth(),
                                         colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                                        border = BorderStroke(1.5.dp, Color(0xFF4CAF50).copy(alpha = 0.3f)),
+                                        border = BorderStroke(1.5.dp, SuccessColor.copy(alpha = 0.3f)),
                                         shape = RoundedCornerShape(14.dp)
                                     ) {
                                         Column(modifier = Modifier.padding(14.dp)) {
@@ -15185,7 +15203,7 @@ fun CustomerPortalScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                                         Box(
                                                             modifier = Modifier
                                                                 .size(10.dp)
-                                                                .background(if (pharmacyAllInStock) Color(0xFF4CAF50) else DarkAccentRed, RoundedCornerShape(50.dp))
+                                                                .background(if (pharmacyAllInStock) SuccessColor else DarkAccentRed, RoundedCornerShape(50.dp))
                                                         )
                                                         Spacer(modifier = Modifier.width(6.dp))
                                                         Text(
@@ -15198,7 +15216,7 @@ fun CustomerPortalScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                                         Box(
                                                             modifier = Modifier
                                                                 .background(
-                                                                    color = if (pharmacyAllInStock) Color(0xFF4CAF50).copy(alpha = 0.15f) else DarkAccentRed.copy(alpha = 0.15f),
+                                                                    color = if (pharmacyAllInStock) SuccessColor.copy(alpha = 0.15f) else DarkAccentRed.copy(alpha = 0.15f),
                                                                     shape = RoundedCornerShape(4.dp)
                                                                 )
                                                                 .padding(horizontal = 6.dp, vertical = 2.dp)
@@ -15209,7 +15227,7 @@ fun CustomerPortalScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                                                 } else {
                                                                     if (isBengali) "কম স্টক" else "Low Stock"
                                                                 },
-                                                                color = if (pharmacyAllInStock) Color(0xFF4CAF50) else DarkAccentRed,
+                                                                color = if (pharmacyAllInStock) SuccessColor else DarkAccentRed,
                                                                 fontSize = 9.sp,
                                                                 fontWeight = FontWeight.Bold
                                                             )
@@ -15225,7 +15243,7 @@ fun CustomerPortalScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                                     if (pharmacyDistance != null) {
                                                         Text(
                                                             text = "${if (isBengali) "দূরত্ব: " else "Dist: "}${formatBengaliNumber(String.format("%.2f", pharmacyDistance))} কি.মি.",
-                                                            color = Color(0xFF00BCD4),
+                                                            color = InfoColor,
                                                             fontWeight = FontWeight.Bold,
                                                             fontSize = 12.sp
                                                         )
@@ -15371,8 +15389,8 @@ fun CustomerPortalScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                                     onClick = {
                                                         expandedPharmacyMapName = if (isMapOpen) null else pharmacy.name
                                                     },
-                                                    border = BorderStroke(1.dp, Color(0xFF2196F3).copy(alpha = 0.5f)),
-                                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF2196F3)),
+                                                    border = BorderStroke(1.dp, InfoColor.copy(alpha = 0.5f)),
+                                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = InfoColor),
                                                     shape = RoundedCornerShape(8.dp),
                                                     modifier = Modifier.weight(1f).height(32.dp),
                                                     contentPadding = PaddingValues(0.dp)
@@ -15400,7 +15418,7 @@ fun CustomerPortalScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                                             android.widget.Toast.LENGTH_LONG
                                                         ).show()
                                                     },
-                                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50), contentColor = Color.White),
+                                                    colors = ButtonDefaults.buttonColors(containerColor = SuccessColor, contentColor = Color.White),
                                                     shape = RoundedCornerShape(8.dp),
                                                     modifier = Modifier.weight(1.2f).height(32.dp),
                                                     contentPadding = PaddingValues(0.dp)
@@ -15446,8 +15464,8 @@ fun CustomerPortalScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
 
                                                             // User Marker (Blue)
                                                             val centerOffset = androidx.compose.ui.geometry.Offset(w/2, h/2)
-                                                            drawCircle(Color(0xFF2196F3).copy(alpha = 0.2f), radius = 20f, center = centerOffset)
-                                                            drawCircle(Color(0xFF2196F3), radius = 4f, center = centerOffset)
+                                                            drawCircle(InfoColor.copy(alpha = 0.2f), radius = 20f, center = centerOffset)
+                                                            drawCircle(InfoColor, radius = 4f, center = centerOffset)
 
                                                             // Pharmacy Marker (Green)
                                                             val latDiff = pharmacy.lat - currentLat
@@ -15456,9 +15474,9 @@ fun CustomerPortalScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                                             val pY = (h / 2) - (latDiff * 4000).toFloat().coerceIn(-h/2 + 20f, h/2 - 20f)
                                                             val pOffset = androidx.compose.ui.geometry.Offset(pX, pY)
 
-                                                            drawLine(Color(0xFF2196F3), start = centerOffset, end = pOffset, strokeWidth = 2f, pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(5f, 5f), 0f))
-                                                            drawCircle(Color(0xFF4CAF50).copy(alpha = 0.3f), radius = 12f, center = pOffset)
-                                                            drawCircle(Color(0xFF4CAF50), radius = 5f, center = pOffset)
+                                                            drawLine(InfoColor, start = centerOffset, end = pOffset, strokeWidth = 2f, pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(5f, 5f), 0f))
+                                                            drawCircle(SuccessColor.copy(alpha = 0.3f), radius = 12f, center = pOffset)
+                                                            drawCircle(SuccessColor, radius = 5f, center = pOffset)
                                                         }
                                                     }
                                                 } else {
@@ -15551,9 +15569,9 @@ fun CustomerPortalScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                 val ord = userOrders[index]
 
                                 val statusColor = when (ord.status) {
-                                    "Confirmed" -> Color(0xFF4CAF50)
+                                    "Confirmed" -> SuccessColor
                                     "Cancelled" -> DarkAccentRed
-                                    else -> Color(0xFFFF9800) // Pending
+                                    else -> WarningColor // Pending
                                 }
 
                                 val displayedStatusStr = when (ord.status) {
@@ -15583,7 +15601,7 @@ fun CustomerPortalScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                                 )
                                                 Text(
                                                     text = "${if (isBengali) "ফার্মেসি: " else "Pharmacy: "}${ord.pharmacyName}",
-                                                    color = Color(0xFF00BCD4),
+                                                    color = InfoColor,
                                                     fontSize = 12.sp,
                                                     fontWeight = FontWeight.Medium
                                                 )
@@ -15699,7 +15717,7 @@ fun CustomerPortalScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                     )
                     Text(
                         text = "${if (isBengali) "ফার্মেসি: " else "Pharmacy: "}${if (isBengali) pharm.name else pharm.nameEn}",
-                        color = Color(0xFF00BCD4),
+                        color = InfoColor,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -15811,7 +15829,7 @@ fun CustomerPortalScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                     android.widget.Toast.LENGTH_LONG
                                 ).show()
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50), contentColor = Color.White),
+                            colors = ButtonDefaults.buttonColors(containerColor = SuccessColor, contentColor = Color.White),
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.height(36.dp)
                         ) {
@@ -15872,7 +15890,7 @@ fun CustomerPortalScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                     val sourcePharmacy = getPharmacyForMedicine(med)
                     Text(
                         text = "${if (isBengali) "উৎস ফার্মেসি: " else "Sourced Pharmacy: "}${if (isBengali) sourcePharmacy.name else sourcePharmacy.nameEn}",
-                        color = Color(0xFF00BCD4),
+                        color = InfoColor,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -15911,7 +15929,7 @@ fun CustomerPortalScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                     } else {
                                         "📦 Packing: 1 Box = ${med.stripsPerBox} Strips | 1 Strip = ${med.pcsPerStrip} Pcs"
                                     },
-                                    color = Color(0xFF00BCD4),
+                                    color = InfoColor,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Medium
                                 )
@@ -16189,7 +16207,7 @@ fun CustomerPortalScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                     ).show()
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50), contentColor = Color.White),
+                            colors = ButtonDefaults.buttonColors(containerColor = SuccessColor, contentColor = Color.White),
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.height(36.dp)
                         ) {
@@ -16307,7 +16325,7 @@ fun CustomerMedicineCard(
                 Box(
                     modifier = Modifier
                         .background(
-                            color = if (isAvailable) Color(0xFF4CAF50).copy(alpha = 0.15f) else DarkAccentRed.copy(alpha = 0.15f),
+                            color = if (isAvailable) SuccessColor.copy(alpha = 0.15f) else DarkAccentRed.copy(alpha = 0.15f),
                             shape = RoundedCornerShape(6.dp)
                         )
                         .padding(horizontal = 8.dp, vertical = 4.dp)
@@ -16318,7 +16336,7 @@ fun CustomerMedicineCard(
                         } else {
                             if (isBengali) "স্টক শেষ" else "Out of Stock"
                         },
-                        color = if (isAvailable) Color(0xFF4CAF50) else DarkAccentGold,
+                        color = if (isAvailable) SuccessColor else DarkAccentGold,
                         fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -16489,7 +16507,7 @@ fun CustomerMedicineCard(
                         onAddToCart(target)
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isAvailable) Color(0xFF4CAF50) else Color.Gray.copy(alpha = 0.4f),
+                        containerColor = if (isAvailable) SuccessColor else Color.Gray.copy(alpha = 0.4f),
                         contentColor = Color.White
                     ),
                     shape = RoundedCornerShape(8.dp),
@@ -16548,7 +16566,7 @@ fun CustomerMedicineCard(
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(containerColor = DarkBg.copy(alpha = 0.6f)),
-                            border = BorderStroke(1.dp, if (hasStock) Color(0xFF4CAF50).copy(alpha = 0.3f) else Color.White.copy(alpha = 0.05f)),
+                            border = BorderStroke(1.dp, if (hasStock) SuccessColor.copy(alpha = 0.3f) else Color.White.copy(alpha = 0.05f)),
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Row(
@@ -16561,7 +16579,7 @@ fun CustomerMedicineCard(
                                         Box(
                                             modifier = Modifier
                                                 .size(8.dp)
-                                                .background(if (hasStock) Color(0xFF4CAF50) else DarkAccentRed, RoundedCornerShape(50.dp))
+                                                .background(if (hasStock) SuccessColor else DarkAccentRed, RoundedCornerShape(50.dp))
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(pName, color = DarkTextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
@@ -16569,7 +16587,7 @@ fun CustomerMedicineCard(
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Text(
                                                 text = "• ${formatBengaliNumber(String.format("%.1f", dist))} কি.মি.",
-                                                color = Color(0xFF00BCD4),
+                                                color = InfoColor,
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.Medium
                                             )
@@ -16582,7 +16600,7 @@ fun CustomerMedicineCard(
                                         } else {
                                             if (isBengali) "স্টক শেষ" else "Out of stock"
                                         },
-                                        color = if (hasStock) Color(0xFF4CAF50) else DarkAccentRed,
+                                        color = if (hasStock) SuccessColor else DarkAccentRed,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Medium
                                     )
@@ -16600,7 +16618,7 @@ fun CustomerMedicineCard(
                                         Icon(
                                             imageVector = Icons.Filled.ShoppingCart,
                                             contentDescription = "Add to cart",
-                                            tint = if (hasStock) Color(0xFF4CAF50) else Color.Gray.copy(alpha = 0.4f),
+                                            tint = if (hasStock) SuccessColor else Color.Gray.copy(alpha = 0.4f),
                                             modifier = Modifier.size(18.dp)
                                         )
                                     }
@@ -16751,7 +16769,7 @@ fun AccountScreenForCustomer(viewModel: PharmacyViewModel, isBengali: Boolean) {
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = DarkSurface),
-            border = BorderStroke(1.2.dp, if (currentUser.isLocationSet) Color(0xFF4CAF50).copy(alpha = 0.6f) else DarkAccentGold),
+            border = BorderStroke(1.2.dp, if (currentUser.isLocationSet) SuccessColor.copy(alpha = 0.6f) else DarkAccentGold),
             shape = RoundedCornerShape(16.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -16765,7 +16783,7 @@ fun AccountScreenForCustomer(viewModel: PharmacyViewModel, isBengali: Boolean) {
                             modifier = Modifier
                                 .size(36.dp)
                                 .background(
-                                    if (currentUser.isLocationSet) Color(0xFF4CAF50).copy(alpha = 0.15f) else DarkAccentGold.copy(alpha = 0.15f),
+                                    if (currentUser.isLocationSet) SuccessColor.copy(alpha = 0.15f) else DarkAccentGold.copy(alpha = 0.15f),
                                     RoundedCornerShape(8.dp)
                                 ),
                             contentAlignment = Alignment.Center
@@ -16773,7 +16791,7 @@ fun AccountScreenForCustomer(viewModel: PharmacyViewModel, isBengali: Boolean) {
                             Icon(
                                 imageVector = if (currentUser.isLocationSet) Icons.Filled.LocationOn else Icons.Filled.LocationOff,
                                 contentDescription = "Location",
-                                tint = if (currentUser.isLocationSet) Color(0xFF4CAF50) else DarkAccentGold,
+                                tint = if (currentUser.isLocationSet) SuccessColor else DarkAccentGold,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -16791,7 +16809,7 @@ fun AccountScreenForCustomer(viewModel: PharmacyViewModel, isBengali: Boolean) {
                                 } else {
                                     if (isBengali) "লোকেশন সেট করা হয়নি" else "Location not set"
                                 },
-                                color = if (currentUser.isLocationSet) Color(0xFF4CAF50) else DarkAccentGold,
+                                color = if (currentUser.isLocationSet) SuccessColor else DarkAccentGold,
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Medium
                             )
@@ -17782,13 +17800,13 @@ fun CustomerLocationSettingsDialog(
                     },
                     modifier = Modifier.fillMaxWidth().height(38.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = DarkBg),
-                    border = BorderStroke(1.dp, Color(0xFF2196F3).copy(alpha = 0.5f)),
+                    border = BorderStroke(1.dp, InfoColor.copy(alpha = 0.5f)),
                     shape = RoundedCornerShape(8.dp),
                     contentPadding = PaddingValues(0.dp)
                 ) {
-                    Icon(Icons.Filled.MyLocation, contentDescription = null, tint = Color(0xFF2196F3), modifier = Modifier.size(16.dp))
+                    Icon(Icons.Filled.MyLocation, contentDescription = null, tint = InfoColor, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(if (isBengali) "📍 বর্তমান ডিভাইস জিপিএস (GPS) লোকেশন নিন" else "📍 Get Device GPS Location", color = Color(0xFF2196F3), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(if (isBengali) "📍 বর্তমান ডিভাইস জিপিএস (GPS) লোকেশন নিন" else "📍 Get Device GPS Location", color = InfoColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -18035,7 +18053,7 @@ fun NotificationsScreen(
                 colors = CardDefaults.cardColors(containerColor = DarkSurface),
                 border = BorderStroke(
                     width = 1.dp,
-                    color = if (currentUser.linkedAdminUsername.isNotEmpty()) Color(0xFF4CAF50).copy(alpha = 0.4f) else DarkAccentGold.copy(alpha = 0.4f)
+                    color = if (currentUser.linkedAdminUsername.isNotEmpty()) SuccessColor.copy(alpha = 0.4f) else DarkAccentGold.copy(alpha = 0.4f)
                 ),
                 shape = RoundedCornerShape(16.dp)
             ) {
@@ -18047,7 +18065,7 @@ fun NotificationsScreen(
                         Icon(
                             imageVector = if (currentUser.linkedAdminUsername.isNotEmpty()) Icons.Filled.CheckCircle else Icons.Filled.Info,
                             contentDescription = "Connection Status",
-                            tint = if (currentUser.linkedAdminUsername.isNotEmpty()) Color(0xFF4CAF50) else DarkAccentGold,
+                            tint = if (currentUser.linkedAdminUsername.isNotEmpty()) SuccessColor else DarkAccentGold,
                             modifier = Modifier.size(22.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -18121,8 +18139,8 @@ fun NotificationsScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(Color(0xFF4CAF50).copy(alpha = 0.1f), RoundedCornerShape(8.dp))
-                                .border(1.dp, Color(0xFF4CAF50).copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                                .background(SuccessColor.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+                                .border(1.dp, SuccessColor.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
                                 .padding(12.dp)
                         ) {
                             Column {
@@ -18254,7 +18272,7 @@ fun NotificationsScreen(
                                 }
                                 val (statusText, statusColor) = when (req.status) {
                                     "Pending" -> Pair(if (isBengali) "অপেক্ষমাণ" else "Pending", DarkAccentGold)
-                                    "Approved" -> Pair(if (isBengali) "অনুমোদিত" else "Approved", Color(0xFF4CAF50))
+                                    "Approved" -> Pair(if (isBengali) "অনুমোদিত" else "Approved", SuccessColor)
                                     else -> Pair(if (isBengali) "প্রত্যাখ্যাত" else "Rejected", DarkAccentRed)
                                 }
                                 Text(
@@ -18481,7 +18499,7 @@ fun NotificationsScreen(
                             staffReqSecurityCode = ""
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50), contentColor = Color.White),
+                    colors = ButtonDefaults.buttonColors(containerColor = SuccessColor, contentColor = Color.White),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(if (isBengali) "অনুরোধ পাঠান" else "Send Request", fontWeight = FontWeight.Bold)
