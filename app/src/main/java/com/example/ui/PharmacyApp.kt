@@ -562,13 +562,19 @@ fun PharmacyApp(viewModel: PharmacyViewModel) {
                     .fillMaxHeight()
                     .background(GlassBackgroundGradient)
             ) {
-                if (showSplash) {
-                    SplashScreen(isBengali = isBengali, onTimeout = { showSplash = false })
-                } else {
-                    if (!isLoggedIn) {
-                        LoginScreen(viewModel, isBengali)
-                    } else {
-                        LoggedInNavigator(viewModel, isBengali)
+                Crossfade(
+                    targetState = when {
+                        showSplash -> "splash"
+                        !isLoggedIn -> "login"
+                        else -> "app"
+                    },
+                    animationSpec = tween(420, easing = FastOutSlowInEasing),
+                    label = "appRoot"
+                ) { route ->
+                    when (route) {
+                        "splash" -> SplashScreen(isBengali = isBengali, onTimeout = { showSplash = false })
+                        "login" -> LoginScreen(viewModel, isBengali)
+                        else -> LoggedInNavigator(viewModel, isBengali)
                     }
                 }
             }
@@ -596,6 +602,7 @@ fun LoginScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
     var signupPassword by remember { mutableStateOf("") }
     var isSignupPasswordVisible by remember { mutableStateOf(false) }
     var signupRole by remember { mutableStateOf("customer") } // "admin", "staff", "customer"
+    val loginButtonInteractionSource = remember { MutableInteractionSource() }
 
     Column(
         modifier = Modifier
@@ -890,9 +897,12 @@ fun LoginScreen(viewModel: PharmacyViewModel, isBengali: Boolean) {
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp),
+                .height(52.dp)
+                .premiumShadow(radius = 10.dp, shape = RoundedCornerShape(16.dp), alpha = if (isDarkModeGlobal) 0.35f else 0.14f)
+                .pressScale(loginButtonInteractionSource),
+            interactionSource = loginButtonInteractionSource,
             colors = ButtonDefaults.buttonColors(containerColor = DarkAccentRed, contentColor = DarkAccentText),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(16.dp)
         ) {
             Text(
                 text = if (isSignUpMode) {
