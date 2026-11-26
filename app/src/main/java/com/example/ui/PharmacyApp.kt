@@ -15,6 +15,10 @@ import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.InteractionSource
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -106,6 +110,23 @@ val PremiumGoldGradient: Brush @Composable get() = Brush.linearGradient(listOf(C
 fun Modifier.premiumShadow(radius: Dp = 18.dp, shape: Shape = RoundedCornerShape(20.dp), alpha: Float = 0.22f): Modifier =
     this.shadow(elevation = radius, shape = shape, ambientColor = Color.Black.copy(alpha = alpha), spotColor = Color.Black.copy(alpha = alpha))
 
+/**
+ * Apple-style tactile press feedback: scales down to [downScale] while [interactionSource]
+ * reports a press, springing back on release. Pass the SAME interaction source you give to
+ * the element's own `clickable`/`Button` so this only reacts to real presses rather than
+ * adding a second overlapping click target.
+ */
+@Composable
+fun Modifier.pressScale(interactionSource: InteractionSource, downScale: Float = 0.96f): Modifier {
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) downScale else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "pressScale"
+    )
+    return this.graphicsLayer { scaleX = scale; scaleY = scale }
+}
+
 // ---- Glass UI tokens (glassmorphism overlay system, premium minimal look) ----
 val GlassFill: Color @Composable get() = if (isDarkModeGlobal) Color.White.copy(alpha = 0.055f) else Color.White.copy(alpha = 0.62f)
 val GlassFillStrong: Color @Composable get() = if (isDarkModeGlobal) Color.White.copy(alpha = 0.09f) else Color.White.copy(alpha = 0.78f)
@@ -147,13 +168,15 @@ fun GlassIconButton(
     tint: Color = Color.White,
     size: Dp = 40.dp
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     Box(
         modifier = Modifier
             .size(size)
+            .pressScale(interactionSource)
             .clip(CircleShape)
             .background(Color.White.copy(alpha = 0.12f), CircleShape)
             .border(1.dp, Color.White.copy(alpha = 0.22f), CircleShape)
-            .clickable(onClick = onClick),
+            .clickable(interactionSource = interactionSource, indication = LocalIndication.current, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icon(icon, contentDescription = contentDescription, tint = tint, modifier = Modifier.size(size * 0.5f))
@@ -999,12 +1022,22 @@ fun LoggedInNavigator(viewModel: PharmacyViewModel, isBengali: Boolean) {
                     onAddPharmacy = { showStaffAddPharmacyDialog = true }
                 )
             } else {
-                when (currentTab) {
-                    0 -> DashboardScreen(viewModel, isBengali)
-                    1 -> SalesScreen(viewModel, isBengali)
-                    2 -> InventoryScreen(viewModel, isBengali)
-                    3 -> ReportsScreen(viewModel, isBengali)
-                    4 -> AccountScreen(viewModel, isBengali)
+                AnimatedContent(
+                    targetState = currentTab,
+                    transitionSpec = {
+                        (fadeIn(animationSpec = tween(220, easing = FastOutSlowInEasing)) +
+                            slideInVertically(animationSpec = tween(260, easing = FastOutSlowInEasing)) { it / 18 })
+                            .togetherWith(fadeOut(animationSpec = tween(140)))
+                    },
+                    label = "tabContent"
+                ) { tab ->
+                    when (tab) {
+                        0 -> DashboardScreen(viewModel, isBengali)
+                        1 -> SalesScreen(viewModel, isBengali)
+                        2 -> InventoryScreen(viewModel, isBengali)
+                        3 -> ReportsScreen(viewModel, isBengali)
+                        4 -> AccountScreen(viewModel, isBengali)
+                    }
                 }
             }
         }
@@ -2575,12 +2608,14 @@ fun DashboardCard(
     subValue: String? = null,
     onClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 115.dp)
             .premiumShadow(radius = 10.dp, shape = RoundedCornerShape(24.dp))
-            .clickable { onClick() },
+            .pressScale(interactionSource)
+            .clickable(interactionSource = interactionSource, indication = LocalIndication.current) { onClick() },
         colors = CardDefaults.cardColors(containerColor = DarkCardBg),
         shape = RoundedCornerShape(24.dp),
         border = BorderStroke(1.dp, SleekBorderColor)
